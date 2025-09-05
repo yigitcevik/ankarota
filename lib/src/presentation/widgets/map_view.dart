@@ -6,6 +6,7 @@ import '../../core/config.dart';
 import '../providers/location_provider.dart';
 import '../providers/route_provider.dart';
 import '../../core/utils/polyline_decoder.dart';
+import '../../domain/entities/route_step.dart';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -68,9 +69,7 @@ class _MapViewState extends ConsumerState<MapView> {
       mapToolbarEnabled: false,
       zoomControlsEnabled: false,
       mapType: MapType.normal,
-      // Enable traffic layer for debugging
       trafficEnabled: false,
-      // Enable building layer
       buildingsEnabled: true,
     ),
         
@@ -95,38 +94,202 @@ class _MapViewState extends ConsumerState<MapView> {
 
   void _updateRoute(route) {
     setState(() {
-      _polylines = {
+      _polylines = _createColoredPolylines(route);
+      _markers = _createMarkers(route);
+    });
+
+    _fitBounds(route);
+  }
+
+  Set<Marker> _createMarkers(route) {
+    Set<Marker> markers = {
+      Marker(
+        markerId: const MarkerId('start'),
+        position: LatLng(
+          route.startLocation.latitude,
+          route.startLocation.longitude,
+        ),
+        infoWindow: const InfoWindow(title: 'Start'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      ),
+      Marker(
+        markerId: const MarkerId('end'),
+        position: LatLng(
+          route.endLocation.latitude,
+          route.endLocation.longitude,
+        ),
+        infoWindow: const InfoWindow(title: 'Destination'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      ),
+    };
+
+    if (route.steps != null) {
+      for (int i = 0; i < route.steps.length; i++) {
+        final step = route.steps[i];
+        if (step.travelMode == TravelMode.transit) {
+          if (step.departureStop != null) {
+            markers.add(
+              Marker(
+                markerId: MarkerId('transit_start_$i'),
+                position: LatLng(
+                  step.startLocation.latitude,
+                  step.startLocation.longitude,
+                ),
+                infoWindow: InfoWindow(
+                  title: step.departureStop!,
+                  snippet: step.busNumber ?? 'Transit',
+                ),
+                icon: BitmapDescriptor.defaultMarkerWithHue(_getMarkerHue(step.vehicleType)),
+              ),
+            );
+          }
+          if (step.arrivalStop != null) {
+            markers.add(
+              Marker(
+                markerId: MarkerId('transit_end_$i'),
+                position: LatLng(
+                  step.endLocation.latitude,
+                  step.endLocation.longitude,
+                ),
+                infoWindow: InfoWindow(
+                  title: step.arrivalStop!,
+                  snippet: step.busNumber ?? 'Transit',
+                ),
+                icon: BitmapDescriptor.defaultMarkerWithHue(_getMarkerHue(step.vehicleType)),
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    return markers;
+  }
+
+  Set<Polyline> _createColoredPolylines(route) {
+    Set<Polyline> polylines = {};
+    
+    if (route.steps == null || route.steps.isEmpty) {
+      polylines.add(
         Polyline(
           polylineId: const PolylineId('route'),
           points: PolylineDecoder.decode(route.polyline),
           color: Colors.blue,
           width: 5,
         ),
-      };
+      );
+      return polylines;
+    }
 
-      _markers = {
-        Marker(
-          markerId: const MarkerId('start'),
-          position: LatLng(
-            route.startLocation.latitude,
-            route.startLocation.longitude,
-          ),
-          infoWindow: const InfoWindow(title: 'Start'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        ),
-        Marker(
-          markerId: const MarkerId('end'),
-          position: LatLng(
-            route.endLocation.latitude,
-            route.endLocation.longitude,
-          ),
-          infoWindow: const InfoWindow(title: 'Destination'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        ),
-      };
-    });
+    for (int i = 0; i < route.steps.length; i++) {
+      final step = route.steps[i];
+      if (step.polyline != null && step.polyline.isNotEmpty) {
+        final points = PolylineDecoder.decode(step.polyline);
+        if (points.isNotEmpty) {
+          polylines.add(
+            Polyline(
+              polylineId: PolylineId('step_$i'),
+              points: points,
+              color: _getTravelModeColor(step.travelMode, step.vehicleType),
+              width: _getTravelModeWidth(step.travelMode),
+              patterns: _getTravelModePattern(step.travelMode),
+            ),
+          );
+        }
+      }
+    }
 
-    _fitBounds(route);
+    if (polylines.isEmpty) {
+      polylines.add(
+        Polyline(
+          polylineId: const PolylineId('route'),
+          points: PolylineDecoder.decode(route.polyline),
+          color: Colors.blue,
+          width: 5,
+        ),
+      );
+    }
+
+    return polylines;
+  }
+
+  Color _getTravelModeColor(TravelMode mode, [String? vehicleType]) {
+    switch (mode) {
+      case TravelMode.walking:
+        return Colors.green;
+      case TravelMode.transit:
+        return _getTransitColor(vehicleType);
+      case TravelMode.driving:
+        return Colors.orange;   
+    }
+  }
+
+  Color _getTransitColor(String? vehicleType) {
+    if (vehicleType == null) return Colors.blue;
+    
+    switch (vehicleType.toUpperCase()) {
+      case 'SUBWAY':
+      case 'METRO':
+      case 'UNDERGROUND':
+        return Colors.red;
+      case 'BUS':
+        return Colors.blue;
+      case 'TRAM':
+      case 'LIGHT_RAIL':
+        return Colors.purple;
+      case 'TRAIN':
+      case 'RAIL':
+        return Colors.orange;
+      case 'FERRY':
+        return Colors.cyan;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  int _getTravelModeWidth(TravelMode mode) {
+    switch (mode) {
+      case TravelMode.walking:
+        return 4;
+      case TravelMode.transit:
+        return 6;
+      case TravelMode.driving:
+        return 5;
+    }
+  }
+
+  List<PatternItem> _getTravelModePattern(TravelMode mode) {
+    switch (mode) {
+      case TravelMode.walking:
+        return [PatternItem.dot, PatternItem.gap(10)];
+      case TravelMode.transit:
+        return [];
+      case TravelMode.driving:
+        return [];
+    }
+  }
+
+  double _getMarkerHue(String? vehicleType) {
+    if (vehicleType == null) return BitmapDescriptor.hueBlue;
+    
+    switch (vehicleType.toUpperCase()) {
+      case 'SUBWAY':
+      case 'METRO':
+      case 'UNDERGROUND':
+        return BitmapDescriptor.hueRed;
+      case 'BUS':
+        return BitmapDescriptor.hueBlue;
+      case 'TRAM':
+      case 'LIGHT_RAIL':
+        return BitmapDescriptor.hueViolet;
+      case 'TRAIN':
+      case 'RAIL':
+        return BitmapDescriptor.hueOrange;
+      case 'FERRY':
+        return BitmapDescriptor.hueCyan;
+      default:
+        return BitmapDescriptor.hueBlue;
+    }
   }
 
   void _clearRoute() {
@@ -139,7 +302,6 @@ class _MapViewState extends ConsumerState<MapView> {
   void _goToCurrentLocation(AsyncValue locationState) async {
     if (_controller == null) return;
 
-    // Check if we have a real location (not the default one)
     final hasRealLocation = locationState.hasValue && 
         locationState.value != null && 
         !(locationState.value!.latitude == 39.9334 && locationState.value!.longitude == 32.8597);
@@ -153,18 +315,15 @@ class _MapViewState extends ConsumerState<MapView> {
         ),
       );
     } else {
-      // Check location permission and services
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       LocationPermission permission = await Geolocator.checkPermission();
 
       if (!serviceEnabled || permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        // Request location permission - this will trigger Android's native dialog
         if (!serviceEnabled) {
-          // Location services are disabled
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Konum servisleri kapalı. Lütfen cihaz ayarlarından konum servislerini açın.'),
+                content: Text('Location services are disabled. Please enable location services in device settings.'),
                 backgroundColor: Colors.orange,
                 duration: Duration(seconds: 3),
               ),
@@ -174,7 +333,6 @@ class _MapViewState extends ConsumerState<MapView> {
         }
 
         if (permission == LocationPermission.denied) {
-          // Request permission - this shows Android's native permission dialog
           permission = await Geolocator.requestPermission();
           if (permission == LocationPermission.denied) {
             if (context.mounted) {
@@ -193,7 +351,7 @@ class _MapViewState extends ConsumerState<MapView> {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Konum izni kalıcı olarak reddedildi. Lütfen uygulama ayarlarından izin verin.'),
+                content: Text('Location permission permanently denied. Please grant permission from app settings.'),
                 backgroundColor: Colors.red,
                 duration: Duration(seconds: 4),
               ),
@@ -203,10 +361,8 @@ class _MapViewState extends ConsumerState<MapView> {
         }
       }
 
-      // Try to get location after permission is granted
       await ref.read(currentLocationProvider.notifier).getCurrentLocation();
       
-      // Check if we now have a real location
       final updatedLocationState = ref.read(currentLocationProvider);
       final hasUpdatedRealLocation = updatedLocationState.hasValue && 
           updatedLocationState.value != null && 
@@ -221,11 +377,10 @@ class _MapViewState extends ConsumerState<MapView> {
           ),
         );
       } else {
-        // Show error message if still couldn't get real location
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Konum alınamadı. Lütfen konum servislerinin açık olduğundan emin olun.'),
+              content: Text('Location not available. Please ensure location services are enabled.'),
               backgroundColor: Colors.orange,
             ),
           );

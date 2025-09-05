@@ -28,8 +28,8 @@ class RouteModel {
     return RouteEntity(
       polyline: overviewPolyline.points,
       steps: legs.expand((leg) => leg.steps.map((step) => step.toEntity())).toList(),
-      duration: legs.fold<int>(0, (sum, leg) => sum + leg.duration.value).toString(),
-      distance: legs.fold<int>(0, (sum, leg) => sum + leg.distance.value).toString(),
+      duration: _formatDuration(legs.fold<int>(0, (sum, leg) => sum + leg.duration.value)),
+      distance: _formatDistance(legs.fold<int>(0, (sum, leg) => sum + leg.distance.value)),
       startLocation: Location(
         latitude: firstLeg.startLocation.lat,
         longitude: firstLeg.startLocation.lng,
@@ -39,6 +39,26 @@ class RouteModel {
         longitude: lastLeg.endLocation.lng,
       ),
     );
+  }
+
+  static String _formatDuration(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    
+    if (hours > 0) {
+      return '${hours}h ${minutes}min';
+    } else {
+      return '${minutes}min';
+    }
+  }
+
+  static String _formatDistance(int meters) {
+    if (meters >= 1000) {
+      final km = (meters / 1000).toStringAsFixed(1);
+      return '$km km';
+    } else {
+      return '${meters}m';
+    }
   }
 }
 

@@ -13,22 +13,28 @@ class DirectionsService {
     required Location destination,
     String mode = 'transit',
   }) async {
+    
+    final queryParams = {
+      'origin': '${origin.latitude},${origin.longitude}',
+      'destination': '${destination.latitude},${destination.longitude}',
+      'mode': mode,
+      'alternatives': true,
+      'language': 'tr',
+      'region': 'tr',
+      'key': AppConfig.googleMapsApiKey,
+    };
+    
+    
     try {
       final response = await _dio.get(
         '${AppConfig.googleMapsBaseUrl}/directions/json',
-        queryParameters: {
-          'origin': '${origin.latitude},${origin.longitude}',
-          'destination': '${destination.latitude},${destination.longitude}',
-          'mode': mode,
-          'alternatives': true,
-          'language': 'tr',
-          'region': 'tr',
-          'key': AppConfig.googleMapsApiKey,
-        },
+        queryParameters: queryParams,
       );
 
+      
       if (response.statusCode == 200) {
-        return DirectionsResponse.fromJson(response.data);
+        final directionsResponse = DirectionsResponse.fromJson(response.data);
+        return directionsResponse;
       } else {
         throw Exception('Failed to load directions: ${response.statusCode}');
       }

@@ -1,10 +1,6 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'directions_response.dart';
 
-// **************************************************************************
-// JsonSerializableGenerator
-// **************************************************************************
 
 DirectionsResponse _$DirectionsResponseFromJson(Map<String, dynamic> json) =>
     DirectionsResponse(

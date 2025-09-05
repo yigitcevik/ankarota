@@ -17,6 +17,8 @@ class RouteStep extends Equatable {
   final String? arrivalStop;
   final String? departureTime;
   final String? arrivalTime;
+  final String? polyline;
+  final String? vehicleType;
 
   const RouteStep({
     required this.instruction,
@@ -32,6 +34,8 @@ class RouteStep extends Equatable {
     this.arrivalStop,
     this.departureTime,
     this.arrivalTime,
+    this.polyline,
+    this.vehicleType,
   });
 
   @override
@@ -49,5 +53,7 @@ class RouteStep extends Equatable {
         arrivalStop,
         departureTime,
         arrivalTime,
+        polyline,
+        vehicleType,
       ];
 }

@@ -42,15 +42,18 @@ class RouteNotifier extends AsyncNotifier<RouteState?> {
     required Location destination,
     String mode = 'transit',
   }) async {
+    
     state = const AsyncValue.loading();
     
     try {
       final getDirections = ref.read(getDirectionsProvider);
+      
       final routes = await getDirections(
         origin: origin,
         destination: destination,
         mode: mode,
       );
+      
       
       if (routes.isNotEmpty) {
         state = AsyncValue.data(RouteState(routes: routes));

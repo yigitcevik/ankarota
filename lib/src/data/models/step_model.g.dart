@@ -1,10 +1,6 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'step_model.dart';
 
-// **************************************************************************
-// JsonSerializableGenerator
-// **************************************************************************
 
 StepModel _$StepModelFromJson(Map<String, dynamic> json) => StepModel(
   htmlInstructions: json['html_instructions'] as String,
@@ -22,6 +18,9 @@ StepModel _$StepModelFromJson(Map<String, dynamic> json) => StepModel(
       : TransitDetailsModel.fromJson(
           json['transit_details'] as Map<String, dynamic>,
         ),
+  polyline: json['polyline'] == null
+      ? null
+      : PolylineModel.fromJson(json['polyline'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$StepModelToJson(StepModel instance) => <String, dynamic>{
@@ -32,6 +31,7 @@ Map<String, dynamic> _$StepModelToJson(StepModel instance) => <String, dynamic>{
   'end_location': instance.endLocation,
   'travel_mode': instance.travelMode,
   'transit_details': instance.transitDetails,
+  'polyline': instance.polyline,
 };
 
 TransitDetailsModel _$TransitDetailsModelFromJson(Map<String, dynamic> json) =>

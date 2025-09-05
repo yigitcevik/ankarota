@@ -24,7 +24,6 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
   late AnimationController _animationController;
   late Animation<double> _heightAnimation;
   
-  // Store coordinates for selected places
   Location? _originLocation;
   Location? _destinationLocation;
 
@@ -55,7 +54,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -64,10 +63,8 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header
           _buildSimpleHeader(),
           
-          // Expandable content
           AnimatedBuilder(
             animation: _heightAnimation,
             builder: (context, child) {
@@ -105,7 +102,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -130,7 +127,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
                   if (!_isExpanded) ...[
                     const SizedBox(height: 2),
                     Text(
-                      'Rota planlamak için dokunun',
+                      'Tap to plan route',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -162,7 +159,6 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
           const Divider(height: 1),
           const SizedBox(height: 16),
           
-          // Origin field
           _buildSimpleSearchField(
             controller: _originController,
             hint: 'Nereden?',
@@ -173,7 +169,6 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
           
           const SizedBox(height: 8),
           
-          // Swap button
           Center(
             child: Container(
               width: 32,
@@ -196,7 +191,6 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
           
           const SizedBox(height: 8),
           
-          // Destination field
           _buildSimpleSearchField(
             controller: _destinationController,
             hint: 'Nereye?',
@@ -207,7 +201,6 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
           
           const SizedBox(height: 20),
           
-          // Search button
           SizedBox(
             width: double.infinity,
             height: 48,
@@ -236,7 +229,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
                         Icon(Icons.search, size: 20),
                         SizedBox(width: 8),
                         Text(
-                          'Rota Bul',
+                          'Find Route',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -300,7 +293,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
 
   void _searchRoute() async {
     if (_originController.text.isEmpty || _destinationController.text.isEmpty) {
-      _showSnackBar('Lütfen başlangıç ve bitiş noktasını girin');
+      _showSnackBar('Please enter start and end points');
       return;
     }
 
@@ -317,9 +310,9 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
         destination: destination,
       );
       
-      _showSnackBar('Rota başarıyla bulundu!');
+      _showSnackBar('Route found successfully!');
     } catch (e) {
-      _showSnackBar('Rota bulunamadı: $e');
+      _showSnackBar('Route not found: $e');
     } finally {
       setState(() {
         _isSearching = false;
@@ -329,26 +322,23 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
 
   void _swapLocations() {
     setState(() {
-      // Swap text controllers
       final originText = _originController.text;
       _originController.text = _destinationController.text;
       _destinationController.text = originText;
       
-      // Swap location coordinates
       final originLocation = _originLocation;
       _originLocation = _destinationLocation;
       _destinationLocation = originLocation;
     });
     
     
-    // Show feedback to user
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Row(
           children: [
             Icon(Icons.swap_vert, color: Colors.white, size: 20),
             SizedBox(width: 8),
-            Text('Başlangıç ve varış noktaları değiştirildi'),
+            Text('Start and destination points swapped'),
           ],
         ),
         backgroundColor: Colors.blue,
@@ -363,7 +353,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
       MaterialPageRoute(
         builder: (context) => AddressSearchPage(
           title: isOrigin ? 'Nereden' : 'Nereye',
-          hint: isOrigin ? 'Başlangıç noktasını seçin' : 'Varış noktasını seçin',
+          hint: isOrigin ? 'Choose starting point' : 'Choose destination',
           isOrigin: isOrigin,
         ),
       ),

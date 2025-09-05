@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:dio/dio.dart';
 import '../../domain/entities/location.dart';
 import '../providers/location_provider.dart';
 import '../../core/config.dart';
+import 'map_selection_page.dart';
 
 class AddressSearchPage extends ConsumerStatefulWidget {
   final String title;
@@ -33,7 +33,6 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
   @override
   void initState() {
     super.initState();
-    // Auto-focus search field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocus.requestFocus();
     });
@@ -98,7 +97,6 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
       ),
       body: Column(
         children: [
-          // Quick action buttons
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -107,29 +105,27 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
                 _buildQuickActionButton(
                   icon: Icons.gps_fixed,
                   iconColor: Colors.blue,
-                  title: 'Mevcut Konum',
-                  subtitle: 'GPS konumunu kullan',
+                  title: 'Current Location',
+                  subtitle: 'Use GPS location',
                   onTap: _useCurrentLocation,
                 ),
                 const SizedBox(height: 8),
                 _buildQuickActionButton(
                   icon: Icons.map,
                   iconColor: Colors.green,
-                  title: 'Haritadan Seç',
-                  subtitle: 'Harita üzerinden nokta seç',
+                  title: 'Select from Map',
+                  subtitle: 'Pick point from map',
                   onTap: _selectFromMap,
                 ),
               ],
             ),
           ),
           
-          // Divider
           Container(
             height: 8,
             color: Colors.grey[100],
           ),
           
-          // Search results
           Expanded(
             child: Container(
               color: Colors.white,
@@ -175,7 +171,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
+                color: iconColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -342,7 +338,6 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
       _isLoading = true;
     });
 
-    // Simple debouncing
     Future.delayed(const Duration(milliseconds: 500), () {
       if (_searchController.text == query && query.isNotEmpty) {
         _searchPlaces(query);
@@ -358,7 +353,6 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
   void _searchPlaces(String query) async {
     try {
       
-      // Use HTTP request to Google Places API directly
       final response = await _searchWithGooglePlacesAPI(query);
       
       setState(() {
@@ -428,7 +422,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
             'location': location,
           });
         } else {
-          _showSnackBar('Konum izni gerekiyor. Lütfen ayarlardan konum servislerini açın.');
+          _showSnackBar('Location permission required. Please enable location services in settings.');
         }
       }
     } catch (e) {
@@ -436,9 +430,19 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
     }
   }
 
-  void _selectFromMap() {
-    // TODO: Navigate to map selection page
-    _showSnackBar('Harita seçimi özelliği yakında eklenecek');
+  void _selectFromMap() async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapSelectionPage(
+          title: widget.title,
+        ),
+      ),
+    );
+
+    if (result != null && result['location'] != null) {
+      Navigator.pop(context, result);
+    }
   }
 
   void _selectPrediction(Prediction prediction) async {
@@ -448,10 +452,8 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
         return;
       }
 
-      // Show loading
       _showSnackBar('Konum bilgileri alınıyor...');
       
-      // Get place details from Google Places API
       final location = await _getPlaceDetails(prediction.placeId!);
       
       

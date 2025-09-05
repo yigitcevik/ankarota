@@ -1,10 +1,6 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'route_model.dart';
 
-// **************************************************************************
-// JsonSerializableGenerator
-// **************************************************************************
 
 RouteModel _$RouteModelFromJson(Map<String, dynamic> json) => RouteModel(
   overviewPolyline: PolylineModel.fromJson(

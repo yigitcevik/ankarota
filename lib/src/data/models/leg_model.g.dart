@@ -1,10 +1,6 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'leg_model.dart';
 
-// **************************************************************************
-// JsonSerializableGenerator
-// **************************************************************************
 
 LegModel _$LegModelFromJson(Map<String, dynamic> json) => LegModel(
   distance: DistanceModel.fromJson(json['distance'] as Map<String, dynamic>),

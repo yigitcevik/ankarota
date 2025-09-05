@@ -22,8 +22,8 @@ class _RouteStepsPanelState extends State<RouteStepsPanel> with TickerProviderSt
   late AnimationController _animationController;
   late Animation<double> _heightAnimation;
   bool _isExpanded = false;
-  double _initialHeight = 120;
-  double _expandedHeight = 400;
+  double _initialHeight = 200;
+  double _expandedHeight = 600;
 
   @override
   void initState() {
@@ -58,6 +58,27 @@ class _RouteStepsPanelState extends State<RouteStepsPanel> with TickerProviderSt
     });
   }
 
+  double _dragStartY = 0;
+  
+  void _handleDragStart(DragStartDetails details) {
+    _dragStartY = details.globalPosition.dy;
+  }
+  
+  void _handleDragUpdate(DragUpdateDetails details) {
+  }
+  
+  void _handleDragEnd(DragEndDetails details) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final dragDistance = _dragStartY - details.globalPosition.dy;
+    final dragThreshold = 50.0;
+    
+    if (dragDistance > dragThreshold && !_isExpanded) {
+      _toggleExpansion();
+    } else if (dragDistance < -dragThreshold && _isExpanded) {
+      _toggleExpansion();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedRoute = widget.routes[widget.selectedRouteIndex];
@@ -85,6 +106,9 @@ class _RouteStepsPanelState extends State<RouteStepsPanel> with TickerProviderSt
             children: [
               GestureDetector(
                 onTap: _toggleExpansion,
+                onPanStart: _handleDragStart,
+                onPanUpdate: _handleDragUpdate,
+                onPanEnd: _handleDragEnd,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Column(
@@ -99,31 +123,70 @@ class _RouteStepsPanelState extends State<RouteStepsPanel> with TickerProviderSt
                       ),
                       const SizedBox(height: 8),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
                           children: [
-                            Icon(
-                              Icons.directions_transit,
-                              color: Colors.blue[600],
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.route,
+                                    color: Colors.blue[600],
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Best Route',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                      Text(
+                                        '${widget.routes.length} alternatif bulundu',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _buildRouteMetrics(selectedRoute),
+                                const SizedBox(width: 8),
+                                AnimatedRotation(
+                                  turns: _isExpanded ? 0.5 : 0.0,
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Icon(
+                                      Icons.expand_more,
+                                      color: Colors.grey[600],
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Route Options (${widget.routes.length})',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '${selectedRoute.duration} • ${selectedRoute.distance}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            Icon(
-                              _isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-                              color: Colors.grey[600],
-                            ),
+                            if (!_isExpanded) ...[
+                              const SizedBox(height: 8),
+                              _buildSelectedRoutePreview(selectedRoute),
+                            ],
                           ],
                         ),
                       ),
@@ -133,10 +196,14 @@ class _RouteStepsPanelState extends State<RouteStepsPanel> with TickerProviderSt
               ),
               if (_isExpanded) ...[
                 const Divider(height: 1),
-                _buildRouteOptions(),
+                Expanded(
+                  flex: 2,
+                  child: _buildRouteOptions(),
+                ),
                 const Divider(height: 1),
               ],
               Expanded(
+                flex: 3,
                 child: _buildRouteSteps(selectedRoute),
               ),
             ],
@@ -148,120 +215,248 @@ class _RouteStepsPanelState extends State<RouteStepsPanel> with TickerProviderSt
 
   Widget _buildRouteOptions() {
     return Container(
-      height: 140,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: widget.routes.length,
-        itemBuilder: (context, index) {
-          final route = widget.routes[index];
-          final isSelected = index == widget.selectedRouteIndex;
-          final transitLines = _getTransitLines(route);
-          
-          return GestureDetector(
-            onTap: () => widget.onRouteSelected(index),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.blue[50] : Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isSelected ? Colors.blue : Colors.grey[300]!,
-                  width: isSelected ? 2 : 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.blue : Colors.grey[400],
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                Icon(Icons.compare_arrows, size: 18, color: Colors.grey[700]),
+                const SizedBox(width: 8),
+                Text(
+                  'Route Alternatives',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Colors.grey[800],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Route ${index + 1}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: isSelected ? Colors.blue[700] : Colors.black87,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '${route.duration} • ${route.distance}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
+                ),
+                const Spacer(),
+                Text(
+                  'Choose the best one',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: widget.routes.length,
+              itemBuilder: (context, index) {
+                final route = widget.routes[index];
+                final isSelected = index == widget.selectedRouteIndex;
+                final transitLines = _getTransitLines(route);
+                final routeType = _getRouteType(route, index);
+                
+                return GestureDetector(
+                  onTap: () => widget.onRouteSelected(index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.blue[50] : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected ? Colors.blue[300]! : Colors.grey[200]!,
+                        width: isSelected ? 2 : 1,
+                      ),
+                      boxShadow: isSelected ? [
+                        BoxShadow(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                        const SizedBox(height: 4),
-                        if (transitLines.isNotEmpty) ...[
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: 4,
-                            children: transitLines.map((line) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? Colors.blue[100] : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  line,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                    color: isSelected ? Colors.blue[800] : Colors.grey[700],
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                      ] : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: isSelected 
+                                ? [Colors.blue[400]!, Colors.blue[600]!]
+                                : [Colors.grey[300]!, Colors.grey[500]!],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ] else ...[
-                          Text(
-                            _getRouteSummary(route),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600],
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                routeType['icon'],
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    routeType['title'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: isSelected ? Colors.blue[700] : Colors.grey[800],
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[50],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.access_time, size: 12, color: Colors.green[600]),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          route.duration,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(Icons.straighten, size: 12, color: Colors.grey[500]),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    route.distance,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  if (transitLines.isNotEmpty) ...[
+                                    Icon(Icons.directions_bus, size: 12, color: Colors.orange[600]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${transitLines.length} lines',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (transitLines.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: transitLines.take(3).map((line) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? Colors.blue[100] : Colors.orange[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: isSelected ? Colors.blue[200]! : Colors.orange[200]!,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        line,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected ? Colors.blue[700] : Colors.orange[700],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (isSelected) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 16,
                             ),
                           ),
                         ],
                       ],
                     ),
                   ),
-                  if (isSelected)
-                    Icon(
-                      Icons.check_circle,
-                      color: Colors.blue,
-                      size: 20,
-                    ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
+  }
+
+  Map<String, dynamic> _getRouteType(RouteEntity route, int index) {
+    final transitLines = _getTransitLines(route);
+    
+    if (index == 0) {
+      return {
+        'title': 'Fastest',
+        'icon': Icons.speed,
+      };
+    } else if (transitLines.length <= 1) {
+      return {
+        'title': 'Less Transfer',
+        'icon': Icons.timeline,
+      };
+    } else {
+      return {
+        'title': 'Alternative',
+        'icon': Icons.alt_route,
+      };
+    }
   }
 
   List<String> _getTransitLines(RouteEntity route) {
@@ -299,6 +494,130 @@ class _RouteStepsPanelState extends State<RouteStepsPanel> with TickerProviderSt
     }).toList();
     
     return modeTexts.join(' + ');
+  }
+
+  Widget _buildRouteMetrics(RouteEntity route) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.access_time, size: 14, color: Colors.green[600]),
+            const SizedBox(width: 4),
+            Text(
+              route.duration,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.green[600],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.straighten, size: 12, color: Colors.grey[600]),
+            const SizedBox(width: 4),
+            Text(
+              route.distance,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectedRoutePreview(RouteEntity route) {
+    final transitLines = _getTransitLines(route);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue[25],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue[100]!, width: 1),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.blue[700]),
+              const SizedBox(width: 8),
+              Text(
+                'Selected Route Summary',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: Colors.blue[700],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Tap to see alternatives',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          if (transitLines.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.directions_bus, size: 14, color: Colors.orange[600]),
+                const SizedBox(width: 6),
+                Text(
+                  'Hatlar: ',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Expanded(
+                  child: Wrap(
+                    spacing: 6,
+                    children: transitLines.take(4).map((line) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange[200]!, width: 1),
+                        ),
+                        child: Text(
+                          line,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                if (transitLines.length > 4)
+                  Text(
+                    '+${transitLines.length - 4}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildRouteSteps(RouteEntity route) {

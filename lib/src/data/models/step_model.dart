@@ -3,6 +3,7 @@ import '../../domain/entities/route_step.dart';
 import '../../domain/entities/location.dart';
 import 'location_model.dart';
 import 'leg_model.dart';
+import 'route_model.dart';
 
 part 'step_model.g.dart';
 
@@ -20,6 +21,7 @@ class StepModel {
   final String travelMode;
   @JsonKey(name: 'transit_details')
   final TransitDetailsModel? transitDetails;
+  final PolylineModel? polyline;
 
   const StepModel({
     required this.htmlInstructions,
@@ -29,6 +31,7 @@ class StepModel {
     required this.endLocation,
     required this.travelMode,
     this.transitDetails,
+    this.polyline,
   });
 
   factory StepModel.fromJson(Map<String, dynamic> json) =>
@@ -57,6 +60,8 @@ class StepModel {
       arrivalStop: transitDetails?.arrivalStop?.name,
       departureTime: null,
       arrivalTime: null,
+      polyline: polyline?.points,
+      vehicleType: transitDetails?.line?.vehicle?.type?.toUpperCase(),
     );
   }
 
