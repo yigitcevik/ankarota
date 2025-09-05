@@ -359,23 +359,17 @@ class _RouteBottomSheetState extends State<RouteBottomSheet> {
   }
 
   Map<String, dynamic> _getRouteType(RouteEntity route, int index) {
-    final transitLines = _getTransitLines(route);
+    final lines = _getTransitLines(route);
     
-    if (index == 0) {
-      return {
-        'title': 'Fastest',
-        'icon': Icons.speed,
-      };
-    } else if (transitLines.length <= 1) {
-      return {
-        'title': 'Less Transfer',
-        'icon': Icons.timeline,
-      };
-    } else {
-      return {
-        'title': 'Alternative',
-        'icon': Icons.alt_route,
-      };
+    switch (index) {
+      case 0:
+        return {'title': 'Fastest', 'icon': Icons.speed};
+      case 1:
+        return lines.length <= 1 
+          ? {'title': 'Less Transfer', 'icon': Icons.timeline}
+          : {'title': 'Alternative', 'icon': Icons.alt_route};
+      default:
+        return {'title': 'Alternative', 'icon': Icons.alt_route};
     }
   }
 

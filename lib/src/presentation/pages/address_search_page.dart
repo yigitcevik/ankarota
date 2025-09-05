@@ -24,17 +24,17 @@ class AddressSearchPage extends ConsumerStatefulWidget {
 }
 
 class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
-  final Dio dio = Dio();
-  List<Prediction> _predictions = [];
-  bool _isLoading = false;
+  final TextEditingController searchController = TextEditingController();
+  final FocusNode searchFocus = FocusNode();
+  final Dio _dio = Dio();
+  List<Prediction> predictions = [];
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _searchFocus.requestFocus();
+      searchFocus.requestFocus();
     });
   }
 
@@ -68,20 +68,20 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
                 border: Border.all(color: Colors.grey[300]!),
               ),
               child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocus,
+                controller: searchController,
+                focusNode: searchFocus,
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
                   hintText: widget.hint,
                   hintStyle: TextStyle(color: Colors.grey[500]),
                   prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: _searchController.text.isNotEmpty
+                  suffixIcon: searchController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, color: Colors.grey),
                           onPressed: () {
-                            _searchController.clear();
+                            searchController.clear();
                             setState(() {
-                              _predictions.clear();
+                              predictions.clear();
                             });
                           },
                         )
@@ -129,17 +129,17 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
           Expanded(
             child: Container(
               color: Colors.white,
-              child: _isLoading
+              child: isLoading
                   ? const Center(
                       child: CircularProgressIndicator(),
                     )
-                  : _predictions.isEmpty
+                  : predictions.isEmpty
                       ? _buildEmptyState()
                       : ListView.builder(
                           padding: EdgeInsets.zero,
-                          itemCount: _predictions.length,
+                          itemCount: predictions.length,
                           itemBuilder: (context, index) {
-                            final prediction = _predictions[index];
+                            final prediction = predictions[index];
                             return _buildPredictionTile(prediction);
                           },
                         ),
@@ -269,7 +269,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
   }
 
   Widget _buildEmptyState() {
-    if (_searchController.text.isEmpty) {
+    if (searchController.text.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -281,7 +281,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Adres aramaya başlayın',
+              'Start address search',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -290,7 +290,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Yukarıdaki arama kutusuna yazmaya başlayın\nveya hızlı seçenekleri kullanın',
+              'Start typing in the search box above\nor use quick options',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -313,7 +313,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Sonuç bulunamadı',
+            'No results found',
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey[600],
@@ -322,7 +322,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Farklı bir arama terimi deneyin',
+            'Try a different search term',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],
@@ -335,16 +335,16 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
 
   void _onSearchChanged(String query) {
     setState(() {
-      _isLoading = true;
+      isLoading = true;
     });
 
     Future.delayed(const Duration(milliseconds: 500), () {
-      if (_searchController.text == query && query.isNotEmpty) {
+      if (searchController.text == query && query.isNotEmpty) {
         _searchPlaces(query);
       } else if (query.isEmpty) {
         setState(() {
-          _predictions.clear();
-          _isLoading = false;
+          predictions.clear();
+          isLoading = false;
         });
       }
     });
@@ -356,15 +356,15 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
       final response = await _searchWithGooglePlacesAPI(query);
       
       setState(() {
-        _predictions = response;
-        _isLoading = false;
+        predictions = response;
+        isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _predictions = [];
-        _isLoading = false;
+        predictions = [];
+        isLoading = false;
       });
-      _showSnackBar('Arama sırasında hata oluştu: $e');
+      _showSnackBar('Search error: $e');
     }
   }
 
@@ -379,7 +379,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
         '&types=establishment|geocode';
     
     
-    final response = await dio.get(url);
+    final response = await _dio.get(url);
     
     if (response.statusCode == 200) {
       final data = response.data;
@@ -416,17 +416,17 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
         final location = locationState.value!;
         final isRealLocation = !(location.latitude == 39.9334 && location.longitude == 32.8597);
         
-        if (isRealLocation) {
+        if (isRealLocation && mounted) {
           Navigator.pop(context, {
-            'address': 'Mevcut Konum',
+            'address': 'Current Location',
             'location': location,
           });
         } else {
-          _showSnackBar('Location permission required. Please enable location services in settings.');
+          if (mounted) _showSnackBar('Location permission required. Please enable location services in settings.');
         }
       }
     } catch (e) {
-      _showSnackBar('Konum alınamadı: $e');
+      _showSnackBar('Location not available: $e');
     }
   }
 
@@ -441,28 +441,23 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
     );
 
     if (result != null && result['location'] != null) {
-      Navigator.pop(context, result);
+      if (mounted) Navigator.pop(context, result);
     }
   }
 
   void _selectPrediction(Prediction prediction) async {
+    if (prediction.placeId?.isEmpty ?? true) return;
+      
     try {
-      if (prediction.placeId == null || prediction.placeId!.isEmpty) {
-        _showSnackBar('Geçersiz konum seçimi');
-        return;
-      }
-
-      _showSnackBar('Konum bilgileri alınıyor...');
-      
       final location = await _getPlaceDetails(prediction.placeId!);
-      
-      
-      Navigator.pop(context, {
-        'address': prediction.description ?? prediction.structuredFormatting?.mainText ?? 'Seçilen Konum',
-        'location': location,
-      });
+      if (mounted) {
+        Navigator.pop(context, {
+          'address': prediction.description ?? 'Selected Location',
+          'location': location,
+        });
+      }
     } catch (e) {
-      _showSnackBar('Konum bilgileri alınamadı: $e');
+      _showSnackBar('Location details not available: $e');
     }
   }
 
@@ -473,7 +468,7 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
         '&fields=geometry';
     
     
-    final response = await dio.get(url);
+    final response = await _dio.get(url);
     
     if (response.statusCode == 200) {
       final data = response.data;
@@ -502,8 +497,8 @@ class _AddressSearchPageState extends ConsumerState<AddressSearchPage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _searchFocus.dispose();
+    searchController.dispose();
+    searchFocus.dispose();
     super.dispose();
   }
 }

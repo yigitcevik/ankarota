@@ -161,7 +161,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
           
           _buildSimpleSearchField(
             controller: _originController,
-            hint: 'Nereden?',
+            hint: 'From where?',
             icon: Icons.radio_button_checked,
             iconColor: Colors.green,
             isOrigin: true,
@@ -193,7 +193,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
           
           _buildSimpleSearchField(
             controller: _destinationController,
-            hint: 'Nereye?',
+            hint: 'Where to?',
             icon: Icons.location_on,
             iconColor: Colors.red,
             isOrigin: false,
@@ -297,9 +297,7 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-    });
+    setState(() => _isSearching = true);
 
     try {
       final origin = _originLocation ?? const Location(latitude: 39.9334, longitude: 32.8597);
@@ -310,7 +308,6 @@ class _RouteSearchPanelState extends ConsumerState<RouteSearchPanel>
         destination: destination,
       );
       
-      _showSnackBar('Route found successfully!');
     } catch (e) {
       _showSnackBar('Route not found: $e');
     } finally {

@@ -354,14 +354,13 @@ class _MapSelectionPageState extends ConsumerState<MapSelectionPage> {
     if (_controller == null) return;
 
     await ref.read(currentLocationProvider.notifier).getCurrentLocation();
-    final locationState = ref.read(currentLocationProvider);
+    final loc = ref.read(currentLocationProvider);
 
-    if (locationState.hasValue && locationState.value != null) {
-      final location = locationState.value!;
-      final isRealLocation = !(location.latitude == 39.9334 && location.longitude == 32.8597);
-
-      if (isRealLocation) {
-        await _controller!.animateCamera(
+    if (loc.hasValue && loc.value != null) {
+      final location = loc.value!;
+      
+      if (location.latitude != 39.9334 || location.longitude != 32.8597) {
+        _controller!.animateCamera(
           CameraUpdate.newLatLngZoom(
             LatLng(location.latitude, location.longitude),
             16.0,
@@ -374,15 +373,15 @@ class _MapSelectionPageState extends ConsumerState<MapSelectionPage> {
   }
 
   void _confirmSelection() {
-    if (_selectedLocation != null && mounted && Navigator.canPop(context)) {
-      Navigator.pop(context, {
-        'address': _selectedAddress.isEmpty ? 'Selected Location' : _selectedAddress,
-        'location': entities.Location(
-          latitude: _selectedLocation!.latitude,
-          longitude: _selectedLocation!.longitude,
-        ),
-      });
-    }
+    if (_selectedLocation == null) return;
+    
+    Navigator.pop(context, {
+      'address': _selectedAddress.isEmpty ? 'Selected Location' : _selectedAddress,
+      'location': entities.Location(
+        latitude: _selectedLocation!.latitude,
+        longitude: _selectedLocation!.longitude,
+      ),
+    });
   }
 
   void _showSnackBar(String message) {

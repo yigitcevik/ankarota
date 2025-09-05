@@ -302,11 +302,11 @@ class _MapViewState extends ConsumerState<MapView> {
   void _goToCurrentLocation(AsyncValue locationState) async {
     if (_controller == null) return;
 
-    final hasRealLocation = locationState.hasValue && 
+    final hasLocation = locationState.hasValue && 
         locationState.value != null && 
         !(locationState.value!.latitude == 39.9334 && locationState.value!.longitude == 32.8597);
 
-    if (hasRealLocation) {
+    if (hasLocation) {
       final location = locationState.value!;
       await _controller!.animateCamera(
         CameraUpdate.newLatLngZoom(
@@ -338,7 +338,7 @@ class _MapViewState extends ConsumerState<MapView> {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Konum izni reddedildi.'),
+                  content: Text('Location permission denied.'),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -364,11 +364,11 @@ class _MapViewState extends ConsumerState<MapView> {
       await ref.read(currentLocationProvider.notifier).getCurrentLocation();
       
       final updatedLocationState = ref.read(currentLocationProvider);
-      final hasUpdatedRealLocation = updatedLocationState.hasValue && 
+      final hasUpdatedLocation = updatedLocationState.hasValue && 
           updatedLocationState.value != null && 
           !(updatedLocationState.value!.latitude == 39.9334 && updatedLocationState.value!.longitude == 32.8597);
           
-      if (hasUpdatedRealLocation) {
+      if (hasUpdatedLocation) {
         final location = updatedLocationState.value!;
         await _controller!.animateCamera(
           CameraUpdate.newLatLngZoom(
